@@ -1,0 +1,139 @@
+body {
+  background: #142e58 url(../images/login-bg.jpg) center top no-repeat;
+  margin: 0px;
+  font-family: Arial, Helvetica, "微软雅黑", Microsoft YaHei ,sans-serif;
+}
+
+.nothing-else-matters {
+  height: 10px;
+}
+
+#header {
+  height: 30px;
+  background-color: #353735;
+  padding: 0 10px 0 10px;
+}
+
+
+#footer {
+    padding: 15px;
+    text-align: center;
+    border:0;
+    width: 100%;
+    position: fixed;
+    bottom: 0;
+    font-size: 12px;
+    color: rgba(255, 255, 255, .5);
+}
+
+#footer a {
+  color: rgba(255, 255, 255, .8);
+  text-decoration: none;
+}
+
+#footer a:hover {
+  color: #fff;
+}
+
+#logo {
+  padding-top: 6px;
+  font-size: 1.1em;
+  font-weight: bold;
+  color: white;
+}
+
+#wrapper{
+  margin-left: auto;
+  margin-right: auto;
+  width: 900px;
+  text-align: center;
+}
+
+
+#logo_sunstone {
+  height: 160px;
+  margin: 60px auto 0;
+}
+
+#login {
+  text-align: left;
+  box-sizing: border-box;
+  width: 400px;
+  margin: 0 auto;
+  background-color: rgba(255, 255, 255, .9);
+  padding: 30px;
+}
+
+.login-input {
+  box-sizing: border-box;
+  font-size: 16px;
+  line-height: 20px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d3d7de;
+  background-color: #d3d7de;
+  color: #6e747e;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.015) inset;
+  transition: all 518ms ease-in-out;
+}
+
+.login-input:focus {
+  border: 1px solid #b2b8c3;
+  background-color: #dfe3e9;
+}
+
+.login-row{
+  margin-bottom: 15px;
+}
+
+.submit-row {
+  margin-top: 40px;
+  vertical-align: middle;
+}
+
+#login_btn {
+  font-size: 20px;
+  line-height: 1;
+  background-color: #2199e8;
+  color: rgba(255, 255, 255, 0.8);
+  border: 1px solid #1d91dd;
+  padding: 10px 30px;
+}
+
+#login_btn:hover {
+  background-color: #1d8dd6;
+  border-color: #1983c8;
+}
+
+#login_spinner {
+  margin-top: 10px;
+  float: right;
+  width: 24px;
+}
+
+#label_remember {
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+#check_remember {
+  margin-left: 15px;
+  vertical-align: middle;
+}
+
+div.alert-box {
+  display: block;
+  padding: 12px 20px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, .8);
+  background-color: #2ba6cb;
+}
+
+div.alert-box.alert {
+  background-color: #eecacc;
+  color: #d54e58;
+}
+
+#error_box {
+  margin-top: 20px;
+}

@@ -1,0 +1,138 @@
+.tab:not(#provision-tab) {
+  margin-top: -4.3rem;
+
+  @include breakpoint(small only) {
+    margin-top: 0;
+  }
+}
+
+.sunstone-list,
+.sunstone-info,
+.sunstone-form,
+.sunstone-menu-header,
+.actions_row {
+  padding: 0 2rem;
+}
+
+.sunstone-menu-header {
+  padding: 0 1rem;
+}
+
+
+#top-row {
+  padding: 10px 0;
+  background-color: #293036;
+  position: relative;
+
+  .user-zone-info {
+
+    a {
+      color: rgba(255, 255, 255, .8);
+      line-height: 18px;
+      padding: 6px 20px 6px 10px;
+
+      i,
+      span {
+        vertical-align: bottom;
+      }
+    }
+
+    .submenu {
+      top: 45px;
+      border: 1px solid #c0c0c0;
+      background-color: #fff;
+      border-radius: 3px;
+
+      a {
+        color: #666;
+        padding: 10px 30px 10px 10px;
+        &:hover {
+          color: #333;
+          background-color: #efefef;
+        }
+      }
+
+      .submenu {
+        top: 0;
+      }
+    }
+
+  }
+
+  .opennebula-img {
+    max-height: 30px;
+    @include breakpoint(medium only) {
+      display: none;
+    }
+  }
+
+  #menu-toggle {
+    z-index: 900;
+    position: relative;
+    @include breakpoint(large) {
+      display: none;
+    }
+  }
+
+  .is-dropdown-submenu .is-dropdown-submenu-parent.opens-left > a::after  {
+    border-color: transparent #c0c0c0 transparent transparent;
+  }
+}
+
+.provision-logo {
+  img {
+    height: 3rem;
+  }
+}
+
+.header-title {
+  margin-bottom: 1.5rem;
+  padding: 1rem 2rem;
+  @include breakpoint(medium only) {
+    margin-left: 3rem;
+  }
+}
+
+
+#footer {
+  font-size: 0.8rem;
+  margin-top: 1rem;
+  color: $dark-gray;
+
+  a {
+    color: $dark-gray;
+  }
+}
+
+.action_blocks {
+  & > span {
+    padding-right: 2rem;
+  }
+}
+
+.vm-action-disabled {
+  //color: #cfcfcf !important;
+  cursor: default !important;
+  opacity: 0.25;
+}
+
+// Source: http://lea.verou.me/more-css-secrets
+.scroll-shadows {
+  background:
+    linear-gradient(white 30%, hsla(0,0%,100%,0)),
+    linear-gradient(hsla(0,0%,100%,0), white 70%) bottom,
+    radial-gradient(at top, rgba(0,0,0,.2), transparent 70%),
+    radial-gradient(at bottom, rgba(0,0,0,.2), transparent 70%) bottom;
+  background-repeat: no-repeat;
+  background-size: 100% 40px, 100% 40px, 100% 14px, 100% 14px;
+  background-attachment: local, local, scroll, scroll;
+}
+
+// Dialogs
+
+.confirm-resources-header {
+  @extend .scroll-shadows;
+
+  overflow-y: auto;
+  max-height: 6em;
+}
