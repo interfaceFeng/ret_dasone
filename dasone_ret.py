@@ -17,6 +17,8 @@
 
 # Change replace items in default file replace.yaml or use other conf file with usage below
 
+
+
 # Usage:
 """
 # Use default yaml file
@@ -400,6 +402,8 @@ def modify_opennebula():
 # Modify dir name containing sunstone
 # Modify file name containing sunstone
 # Modify sunstone in files
+# Escape SContruct file in public file
+# Avoid replace url containing /var/lib/one/sunstone
 def modify_sunstone():
     compile_with_sunstone = re.compile(r'sunstone')
     compile_absolute_sunstone = re.compile(r'/usr/lib/one/sunstone/[a-zA-Z0-9.?/&=:_-]*')
