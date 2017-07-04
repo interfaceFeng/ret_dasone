@@ -48,7 +48,7 @@ echo "replace sunstone etc file"
 ############################################################
 # package src code
 ############################################################
-tar -zcvf opennebula-${opennebula_version}.tar.gz opennebula-${opennebula_version}
-echo "package src code"
+#tar -zcvf opennebula-${opennebula_version}.tar.gz opennebula-${opennebula_version}
+#echo "package src code"
 
 
