@@ -26,6 +26,14 @@ define(function(require) {
       return enabled;
     },
 
+    "changeFilter": function(bool) {
+      _config['pool_filter'] = bool;
+    },
+
+    "isChangedFilter": function(){
+      return _config['pool_filter'];
+    },
+
     "isTabActionEnabled": function(tabName, actionName, panelName) {
       var enabled = false;
       var configTab = _config['view']['tabs'][tabName];
@@ -134,18 +142,22 @@ define(function(require) {
           }
         }
       },
-      "logo": (_config['view']["provision_logo"] || "images/one_small_logo.png")
+      "logo": (_config['view']["provision_logo"] || "images/one_small_logo.png"),
     },
 
-    'autoRefresh' : _config['view']['autorefresh'],
     'tableOrder': _config['user_config']['table_order'],
     'vncProxyPort': _config['system_config']['vnc_proxy_port'],
     'vncWSS': _config['user_config']['vnc_wss'],
     'requestVNCPassword': _config['system_config']['vnc_request_password'],
     'logo': (_config['view']["small_logo"] || "images/one_small_logo.png"),
+    "link_logo": (_config['view']["link_logo"] || false),
+    "text_link_logo": (_config['view']["text_link_logo"] || false),
     'vmLogos': (_config['vm_logos']),
     'enabledTabs': _config['view']['enabled_tabs'],
     'onedConf': _config['oned_conf'],
+    'confirmVMActions': _config['view']['confirm_vms'],
+    'scaleFactor': _config['view']['features']['instantiate_cpu_factor'],
+    'filterView': _config['view']['filter_view'],
 
     "allTabs": function() {
       return Object.keys(_config['view']['tabs']);

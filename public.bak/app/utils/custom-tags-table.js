@@ -23,15 +23,27 @@ define(function(require) {
   var VectorAttributeRowTemplateHTML = require('hbs!./custom-tags-table/vector-attribute-row');
   var TemplateUtils = require('utils/template-utils');
   var WizardFields = require('utils/wizard-fields');
+  var Sunstone = require('sunstone');
 
   function _html(){
     return TemplateHTML();
   }
 
-  function _setup(context){
+  function _setup(context, hide_vector_button = false, resourceType = undefined, element = undefined, elementID = undefined){
     context.off("click", ".add_custom_tag");
     context.on("click", ".add_custom_tag", function(){
       $("tbody.custom_tags", context).append(RowTemplateHTML());
+      if(hide_vector_button){
+        $(".change_to_vector_attribute", context).hide();
+        $(".custom_tag_value",context).focusout(function(){
+          var key = $(".custom_tag_key",this.parentElement.parentElement).val();
+          if(!element.CAPACITY){
+            element.CAPACITY = {};
+          }
+          element.CAPACITY[key] = this.value;
+          Sunstone.runAction(resourceType+".update_template",elementID, TemplateUtils.templateToString(element));
+        });
+      }
     });
 
     context.off("click", ".add_vector_attribute");
@@ -40,11 +52,31 @@ define(function(require) {
       tbody.append(VectorAttributeRowTemplateHTML());
     });
 
+    context.off("click", ".change_to_vector_attribute");
+    context.on("click", ".change_to_vector_attribute", function(){
+      var td = $($(this).closest('table')).parent();
+      var tr = $(td).parent();
+      $('.change_to_vector_attribute', td).addClass('add_vector_attribute').removeClass('change_to_vector_attribute');
+      $('tbody.custom_body', td).addClass('custom_vector_attributes').removeClass('custom_body');
+      $('.custom_tag_key', tr).addClass('custom_vector_key').removeClass('custom_tag_key').css('margin-top', '5px');
+      $('tbody.custom_vector_attributes', td).append(VectorAttributeRowTemplateHTML({
+        key: $('textarea.custom_tag_value', td).val()
+      }));
+      $('textarea.custom_tag_value', td).remove();
+    });
+
     $(".add_custom_tag", context).trigger("click");
 
     context.on("click", "tbody.custom_tags i.remove-tab", function(){
       var tr = $(this).closest('tr');
       tr.remove();
+      if(hide_vector_button){
+        var key = $(".custom_tag_key",this.parentElement.parentElement.parentElement).val()
+        if(element.CAPACITY && element.CAPACITY[key]){
+          delete element.CAPACITY[key];
+          Sunstone.runAction(resourceType+".update_template",elementID, TemplateUtils.templateToString(element));
+        }
+      }
     });
   }
 

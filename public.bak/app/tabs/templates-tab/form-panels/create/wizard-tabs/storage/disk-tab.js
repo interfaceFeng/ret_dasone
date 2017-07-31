@@ -25,6 +25,7 @@ define(function(require) {
   var ImageTable = require('tabs/images-tab/datatable')
   var WizardFields = require('utils/wizard-fields');
   var UniqueId = require('utils/unique-id');
+  var TemplateUtils = require('utils/template-utils');
 
   /*
     TEMPLATES
@@ -147,6 +148,13 @@ define(function(require) {
 
     var tmpl = WizardFields.retrieve(selectedContext);
 
+    if(tmpl.SIZE){
+      tmpl.SIZE = tmpl.SIZE * 1024;
+    }
+
+    if($("input[name='" + this.diskTabId + "']:checked", context).val() == "image" && !tmpl["IMAGE"] && !tmpl["IMAGE_ID"]){
+       return {};
+    }
     var dev_prefix = WizardFields.retrieveInput($('#disk_dev_prefix', selectedContext));
     if (dev_prefix != undefined && dev_prefix.length) {
       if (dev_prefix == "custom") {
@@ -154,12 +162,16 @@ define(function(require) {
       }
       tmpl["DEV_PREFIX"] = dev_prefix;
     }
-
+    $.extend(tmpl, TemplateUtils.stringToTemplate($('#templateStr',context).val()));
     return tmpl;
   }
 
   function _fill(context, templateJSON) {
     var selectedContext;
+
+    if(templateJSON.SIZE){
+      templateJSON.SIZE = templateJSON.SIZE / 1024;
+    }
 
     if (templateJSON.IMAGE_ID || templateJSON.IMAGE) {
       $('input#' + this.diskTabId + 'radioImage', context).click();
@@ -189,6 +201,7 @@ define(function(require) {
     }
 
     WizardFields.fill(selectedContext, templateJSON);
+    $('#templateStr',context).val(TemplateUtils.templateToString(templateJSON));
 
     var dev_prefix = templateJSON["DEV_PREFIX"];
     if (dev_prefix != undefined && dev_prefix.length) {

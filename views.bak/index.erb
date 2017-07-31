@@ -14,7 +14,7 @@
     <% end %>
 
     <% view = $views_config.view(session[:user], session[:user_gname], session[:default_view]) %>
-    <% halt 500, "DASONE is unreachable" if view.nil? %>
+    <% halt 500, "OpenNebula is unreachable" if view.nil? %>
     <script type="text/javascript">
       var csrftoken = '<%= session[:csrftoken] %>';
       var view = JSON.parse('<%= view.to_json %>')
@@ -54,7 +54,7 @@
     </script>
 
     <% if $conf[:env] == 'dev' %>
-    <link href="css/app.css?v=<%= OpenNeubla::VERSION %>" media="screen, projector, print" rel="stylesheet" type="text/css"></link>
+    <link href="css/app.css?v=<%= OpenNebula::VERSION %>" media="screen, projector, print" rel="stylesheet" type="text/css"></link>
     <% else %>
     <link href="css/app.min.css?v=<%= OpenNebula::VERSION %>" media="screen, projector, print" rel="stylesheet" type="text/css"></link>
     <% end %>

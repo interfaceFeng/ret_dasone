@@ -80,9 +80,9 @@ define(function(require) {
 
     this.columns = [
       Locale.tr("ID"),
+      Locale.tr("Name"),
       Locale.tr("Owner"),
       Locale.tr("Group"),
-      Locale.tr("Name"),
       Locale.tr("Capacity"),
       Locale.tr("Apps"),
       Locale.tr("Driver"),
@@ -93,8 +93,8 @@ define(function(require) {
 
     this.selectOptions = {
       "id_index": 1,
-      "name_index": 4,
-      "uname_index": 2,
+      "name_index": 2,
+      "uname_index": 3,
       "select_resource": Locale.tr("Please select a marketplace from the list"),
       "you_selected": Locale.tr("You selected the following marketplace:"),
       "select_resource_multiple": Locale.tr("Please select one or more marketplaces from the list"),
@@ -135,9 +135,9 @@ define(function(require) {
                              element.ID + '" name="selected_items" value="' +
                              element.ID + '"/>',
         element.ID,
+        element.NAME,
         element.UNAME,
         element.GNAME,
-        element.NAME,
         DatastoreCapacityBar.html(element),
         _lengthOf(element.MARKETPLACEAPPS.ID),
         element.MARKET_MAD,

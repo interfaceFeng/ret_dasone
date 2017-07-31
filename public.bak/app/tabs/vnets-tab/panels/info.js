@@ -31,6 +31,7 @@ define(function(require) {
    */
 
   var TemplateTable = require('utils/panel/template-table');
+  var TemplateTableVcenter = require('utils/panel/template-table');
 
   /*
     CONSTANTS
@@ -74,18 +75,26 @@ define(function(require) {
       "INBOUND_AVG_BW",
       "INBOUND_PEAK_BW",
       "INBOUND_PEAK_KB",
-      "OUTBOUNDD_AVG_BW",
+      "OUTBOUND_AVG_BW",
       "OUTBOUND_PEAK_BW",
       "OUTBOUND_PEAK_KB" ];
 
-    var strippedTemplate = $.extend({}, this.element.TEMPLATE);
-
-    $.each(hiddenKeys, function(i, key){
-      delete strippedTemplate[key];
+    var strippedTemplate = {};
+    var strippedTemplateVcenter = {};
+    $.each(this.element.TEMPLATE, function(key, value) {
+      if (!$.inArray(key, hiddenKeys) > -1) {
+        if (key.match(/^VCENTER_*/)){
+          strippedTemplateVcenter[key] = value;
+        }
+        else {
+          strippedTemplate[key] = value;
+        }
+      }
     });
-
     var templateTableHTML = TemplateTable.html(strippedTemplate, RESOURCE,
                                               Locale.tr("Attributes"));
+    var templateTableVcenterHTML = TemplateTableVcenter.html(strippedTemplateVcenter, RESOURCE,
+                                              Locale.tr("vCenter information"), false);
     //====
 
     // TODO: move to util?
@@ -114,7 +123,8 @@ define(function(require) {
       'renameTrHTML': renameTrHTML,
       'reservationTrHTML': reservationTrHTML,
       'permissionsTableHTML': permissionsTableHTML,
-      'templateTableHTML': templateTableHTML
+      'templateTableHTML': templateTableHTML,
+      'templateTableVcenterHTML': templateTableVcenterHTML
     });
   }
 
@@ -134,21 +144,27 @@ define(function(require) {
       "OUTBOUND_PEAK_BW",
       "OUTBOUND_PEAK_KB" ];
 
-    var strippedTemplate = $.extend({}, this.element.TEMPLATE);
-
-    $.each(hiddenKeys, function(i, key){
-      delete strippedTemplate[key];
-    });
-
     var hiddenValues = {};
-
-    $.each(hiddenKeys, function(i, key){
-      if (that.element.TEMPLATE[key] != undefined){
-          hiddenValues[key] = that.element.TEMPLATE[key];
+    var strippedTemplate = {};
+    var strippedTemplateVcenter = {};
+    $.each(that.element.TEMPLATE, function(key, value) {
+      if ($.inArray(key, hiddenKeys) > -1) {
+        hiddenValues[key] = value;
       }
+      if (key.match(/^VCENTER_*/)){
+          strippedTemplateVcenter[key] = value;
+        }
+        else {
+          strippedTemplate[key] = value;
+        }
     });
 
-    TemplateTable.setup(strippedTemplate, RESOURCE, this.element.ID, context, hiddenValues);
+    if($.isEmptyObject(strippedTemplateVcenter)){
+      $('.vcenter', context).hide();
+    }
+
+    TemplateTable.setup(strippedTemplate, RESOURCE, this.element.ID, context, hiddenValues, strippedTemplateVcenter);
+    TemplateTableVcenter.setup(strippedTemplateVcenter, RESOURCE, this.element.ID, context, hiddenValues, strippedTemplate);
     //===
 
     return false;

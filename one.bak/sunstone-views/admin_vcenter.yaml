@@ -1,5 +1,9 @@
 small_logo: images/opennebula-5.0.png
 provision_logo: images/opennebula-5.0.png
+link_logo:
+text_link_logo:
+confirm_vms: false
+filter-view: true
 enabled_tabs:
     - dashboard-tab
     - instances-top-tab
@@ -32,7 +36,7 @@ enabled_tabs:
     - settings-tab
     - support-tab
     - upgrade-top-tab
-autorefresh: true
+    - vmgroup-tab
 features:
     # True to show showback monthly reports, and VM cost
     showback: true
@@ -45,6 +49,16 @@ features:
     # will be set to the same value as VCPU, that will still be visible for the
     # end users
     instantiate_hide_cpu: false
+
+    # False to not scale the CPU. Number [0, 1] to scale from VCPU
+    instantiate_cpu_factor: false
+
+    # True to show the option to make an instance persistent
+    instantiate_persistent: true
+
+    # True to show an input to specify the the VMs and Template path/folder where a vCenter VM will
+    # deployed to
+    vcenter_vm_folder: true
 tabs:
     dashboard-tab:
         # The following widgets can be used inside any of the '_per_row' settings
@@ -80,6 +94,7 @@ tabs:
             user_groups_tab: true
             user_accounting_tab: true
             user_showback_tab: true
+            user_auth_tab: true
         table_columns:
             - 0         # Checkbox
             - 1         # ID
@@ -211,6 +226,7 @@ tabs:
             context: true
             scheduling: true
             hybrid: true
+            vmgroup: true
             other: true
     oneflow-templates-tab:
         panel_tabs:
@@ -335,7 +351,8 @@ tabs:
             VM.resize: true
             VM.attachdisk: true
             VM.detachdisk: true
-            VM.disk_saveas: false
+            VM.disk_saveas: true
+            VM.disk_resize: true
             VM.attachnic: true
             VM.detachnic: true
             VM.snapshot_create: true
@@ -534,7 +551,7 @@ tabs:
             #- 13        # Search data
         actions:
             Datastore.refresh: true
-            Datastore.create_dialog: true
+            Datastore.create_dialog: false
             Datastore.import_dialog: true
             Datastore.addtocluster: true
             Datastore.rename: true
@@ -773,6 +790,7 @@ tabs:
             settings_group_quotas_tab: true
             settings_accounting_tab: true
             settings_showback_tab: true
+            settings_auth_tab: true
         actions:
             # Buttons for settings_info_tab
             User.update_password: true
@@ -788,3 +806,22 @@ tabs:
     upgrade-top-tab:
         panel_tabs:
         actions:
+    vmgroup-tab:
+        panel_tabs:
+            vm_group_info_tab: true
+            vm_group_vms_tab: true
+        table_columns:
+            - 0         # Checkbox
+            - 1         # ID
+            - 2         # Name
+            - 3         # Group
+            - 4         # Owner
+            - 5         # Vms
+            #- 6         # Labels
+            #- 7        # Search data
+        actions:
+           VMGroup.create_dialog: true
+           VMGroup.update_dialog: true
+           VMGroup.chmod: true
+           VMGroup.chown: true
+           VMGroup.chgrp: true

@@ -25,6 +25,9 @@ define(function(require) {
   var CanImportWilds = require('../utils/can-import-wilds');
   var OpenNebulaHost = require('opennebula/host');
   var OpenNebulaAction = require('opennebula/action');
+  var OpenNebulaNetwork = require('opennebula/network');
+  var OpenNebulaImage = require('opennebula/image');
+  var OpenNebulaError = require('opennebula/error');
   var Sunstone = require('sunstone');
   var Notifier = require('utils/notifier');
   var Navigation = require('utils/navigation');
@@ -64,6 +67,7 @@ define(function(require) {
   /*
     FUNCTION DEFINITIONS
    */
+
 
   function _html() {
     return TemplateWilds();
@@ -140,6 +144,7 @@ define(function(require) {
 
         var aData = that.dataTableWildHosts.fnGetData(wild_row);
         var vmName = aData[1];
+        var remoteID = aData[2];
 
         var dataJSON = {
           'id': importHostId,

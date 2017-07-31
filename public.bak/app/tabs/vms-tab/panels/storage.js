@@ -29,6 +29,10 @@ define(function(require) {
   var TemplateHtml = require('hbs!./storage/html');
   var DiskDetailsHtml = require('hbs!./storage/disk-details');
   var Navigation = require('utils/navigation');
+  var Notifier = require('utils/notifier');
+  var Graphs = require('utils/graphs');
+  require('flot.navigate');
+  require('flot.canvas');
 
   /*
     CONSTANTS
@@ -40,6 +44,7 @@ define(function(require) {
   var DISK_SNAPSHOT_DIALOG_ID = require('../dialogs/disk-snapshot/dialogId');
   var DISK_SAVEAS_DIALOG_ID = require('../dialogs/disk-saveas/dialogId');
   var CONFIRM_DIALOG_ID = require('utils/dialogs/generic-confirm/dialogId');
+  var DISK_RESIZE_DIALOG_ID = require('../dialogs/disk-resize/dialogId');
   var RESOURCE = "VM"
   var XML_ROOT = "VM"
 
@@ -62,6 +67,7 @@ define(function(require) {
   Panel.prototype.setup = _setup;
   Panel.prototype.getState = _getState;
   Panel.prototype.setState = _setState;
+  Panel.prototype.onShow = _onShow;
 
   return Panel;
 
@@ -76,10 +82,82 @@ define(function(require) {
       diskCost = Config.onedConf.DEFAULT_COST.DISK_COST;
     }
 
-    return TemplateHtml({
+    var html = TemplateHtml({
         element: this.element,
         diskCost: diskCost
       });
+    // Do not show statistics for not hypervisors that do not gather net data
+    //if (OpenNebulaVM.isNICGraphsSupported(that.element)) {
+      html += '\
+          <div class="row">\
+              <div class="medium-6 columns">\
+                <div class="row">\
+                  <span>' + Locale.tr("Disk read bytes") + '</span3>\
+                </div>\
+                <div class="row">\
+                  <div class="large-12 columns centered graph" id="vm_st_drb_graph" style="height: 100px;">\
+                    <span  id="provision_dashboard_total" style="font-size:80px">\
+                      <i class="fa fa-spinner fa-spin"></i>\
+                    </span>\
+                  </div>\
+                </div>\
+                <div class="row graph_legend">\
+                  <div class="large-12 columns centered" id="vm_net_rx_legend">\
+                  </div>\
+                </div>\
+              </div>\
+              <div class="medium-6 columns">\
+                <div class="row">\
+                  <span>' + Locale.tr("Disk write bytes") + '</span3>\
+                </div>\
+                <div class="row">\
+                  <div class="large-12 columns centered graph" id="vm_st_dwb_graph" style="height: 100px;">\
+                    <span  id="provision_dashboard_total" style="font-size:80px">\
+                      <i class="fa fa-spinner fa-spin"></i>\
+                    </span>\
+                  </div>\
+                </div>\
+                <div class="row graph_legend">\
+                  <div class="large-12 columns centered" id="vm_net_tx_legend">\
+                  </div>\
+                </div>\
+              </div>\
+              <div class="medium-6 columns">\
+                <div class="row">\
+                  <span>' + Locale.tr("Disk read IOPS") + '</span3>\
+                </div>\
+                <div class="row">\
+                  <div class="large-12 columns centered graph" id="vm_st_drio_graph" style="height: 100px;">\
+                    <span  id="provision_dashboard_total" style="font-size:80px">\
+                      <i class="fa fa-spinner fa-spin"></i>\
+                    </span>\
+                  </div>\
+                </div>\
+                <div class="row graph_legend">\
+                  <div class="large-12 columns centered" id="vm_net_rx_speed_legend">\
+                  </div>\
+                </div>\
+              </div>\
+              <div class="medium-6 columns">\
+                <div class="row">\
+                  <span>' + Locale.tr("Disk write IOPS") + '</span3>\
+                </div>\
+                <div class="row">\
+                  <div class="large-12 columns centered graph" id="vm_st_dwio_graph" style="height: 100px;">\
+                    <span  id="provision_dashboard_total" style="font-size:80px">\
+                      <i class="fa fa-spinner fa-spin"></i>\
+                    </span>\
+                  </div>\
+                </div>\
+                <div class="row graph_legend">\
+                  <div class="large-12 columns centered" id="vm_net_tx_speed_legend">\
+                  </div>\
+                </div>\
+              </div>\
+          </div>\
+        </form>';
+   // }
+    return html;
   }
 
   function _setup(context) {
@@ -154,7 +232,7 @@ define(function(require) {
     else if (!$.isEmptyObject(that.element.TEMPLATE.DISK))
       disks = [that.element.TEMPLATE.DISK];
 
-    if (!$.isEmptyObject(that.element.TEMPLATE.CONTEXT)) {
+    if (!$.isEmptyObject(that.element.TEMPLATE.CONTEXT) && that.element.USER_TEMPLATE.HYPERVISOR != "vcenter") {
       var context_disk = that.element.TEMPLATE.CONTEXT;
 
       context_disk["IMAGE"] = Locale.tr("Context");
@@ -211,8 +289,19 @@ define(function(require) {
             // Check if it's volatile
             if (disk.IMAGE_ID &&
                  StateActions.enabledStateAction("VM.disk_saveas", that.element.STATE, that.element.LCM_STATE)) {
-              actions += '<a href="VM.disk_saveas" class="disk_saveas nowrap" >\
-              <i class="fa fa-save fa-fw"></i>' + Locale.tr("Save as") + '</a> &emsp;';
+              if(Array.isArray(that.element.HISTORY_RECORDS.HISTORY)){
+                var historyLenght = that.element.HISTORY_RECORDS.HISTORY.length - 1;
+                if(that.element.LCM_STATE != "3" || that.element.HISTORY_RECORDS.HISTORY[historyLenght].VM_MAD != "vcenter"){
+                  actions += '<a href="VM.disk_saveas" class="disk_saveas nowrap" >\
+              <i class="fa fa-save fa-fw" title="Saveas"></i></a> &emsp;';
+                }
+              } else {
+                if(that.element.LCM_STATE != "3" || that.element.HISTORY_RECORDS.HISTORY.VM_MAD != "vcenter"){
+                  actions += '<a href="VM.disk_saveas" class="disk_saveas nowrap" >\
+              <i class="fa fa-save fa-fw" title="Saveas"></i></a> &emsp;';
+                }
+              }
+              //+ Locale.tr("Save as") + ';'
             }
           }
 
@@ -220,16 +309,33 @@ define(function(require) {
           if (Config.isTabActionEnabled("vms-tab", "VM.detachdisk")) {
             if (StateActions.enabledStateAction("VM.detachdisk", that.element.STATE, that.element.LCM_STATE) && !disk.CONTEXT) {
               actions += ('<a href="VM.detachdisk" class="detachdisk nowrap" >\
-              <i class="fa fa-times fa-fw"></i>' + Locale.tr("Detach") +
-              '</a> &emsp;');
+              <i class="fa fa-times fa-fw" title="Detach"></i></a> &emsp;');// + Locale.tr("Detach") +
+              
             }
           }
 
           if (Config.isTabActionEnabled("vms-tab", "VM.disk_snapshot_create")) {
             if (StateActions.enabledStateAction("VM.disk_snapshot_create", that.element.STATE, that.element.LCM_STATE) && disk.IMAGE_ID) {
               actions += ('<a href="VM.disk_snapshot_create" class="disk_snapshot_create nowrap" >\
-              <i class="fa fa-camera fa-fw"></i>' + Locale.tr("Snapshot") +
-              '</a>');
+              <i class="fa fa-camera fa-fw" title="Snapshot"></i></a> &emsp;');//+ Locale.tr("Snapshot") +
+              
+            }
+          }
+          
+          if (Config.isTabActionEnabled("vms-tab", "VM.disk_resize")) {
+            if (StateActions.enabledStateAction("VM.disk_resize", that.element.STATE, that.element.LCM_STATE) && !disk.CONTEXT) {
+              if(Array.isArray(that.element.HISTORY_RECORDS.HISTORY)){
+                var historyLenght = that.element.HISTORY_RECORDS.HISTORY.length - 1;
+                if(that.element.LCM_STATE != "3" || that.element.HISTORY_RECORDS.HISTORY[historyLenght].VM_MAD != "vcenter"){
+                  actions += ('<a class="disk_resize nowrap" >\
+                  <i class="fa fa-expand fa-fw" title="Resize"></i></a>');
+                }
+              } else {
+                if(that.element.LCM_STATE != "3" || that.element.HISTORY_RECORDS.HISTORY.VM_MAD != "vcenter"){
+                  actions += ('<a class="disk_resize nowrap" >\
+                  <i class="fa fa-expand fa-fw" title="Resize"></i></a>');
+                }
+              }
             }
           }
         }
@@ -351,6 +457,10 @@ define(function(require) {
       context.on('click', '#attach_disk', function() {
         var dialog = Sunstone.getDialog(ATTACH_DISK_DIALOG_ID);
         dialog.setElement(that.element);
+        if(that.element.USER_TEMPLATE.HYPERVISOR && that.element.USER_TEMPLATE.HYPERVISOR == 'vcenter'){
+          $('.hypervisor.only_kvm').hide();
+          $('.hypervisor.only_vcenter').show();
+        }
         dialog.show();
         return false;
       });
@@ -360,7 +470,6 @@ define(function(require) {
       context.off('click', '.detachdisk');
       context.on('click', '.detachdisk', function() {
         var disk_id = $(this).parents('tr').attr('disk_id');
-
         Sunstone.getDialog(CONFIRM_DIALOG_ID).setParams({
           //header :
           headerTabId: TAB_ID,
@@ -396,9 +505,16 @@ define(function(require) {
       });
     }
 
+
     context.off("change", ".snapshot_check_item");
     context.on("change", ".snapshot_check_item", function() {
       var snapshotsSection = $(this).closest('.snapshots');
+      if(that.element.STATE == "3"){
+        $(".disk_snapshot_revert", snapshotsSection).hide();
+      }
+      else{
+        $(".disk_snapshot_revert", snapshotsSection).show();
+      }
 
       // Unselect other check inputs
       var checked = $(this).is(':checked');
@@ -486,7 +602,34 @@ define(function(require) {
         return false;
       });
     }
+    if (Config.isTabActionEnabled("vms-tab", "VM.resize")) {
+    context.off('click', '.disk_resize');
+      context.on('click', '.disk_resize', function() {
+        var disk_id = $(this).parents('tr').attr('disk_id');
+        var disk_size = "";
+        if(Array.isArray(that.element.TEMPLATE.DISK)){
+          $.each(that.element.TEMPLATE.DISK, function(){
+            if (this.DISK_ID == disk_id){
+              disk_size = this.SIZE * 1024;
+            }
+          });
+        } else {
+            disk_size = that.element.TEMPLATE.DISK.SIZE * 1024;
+        }
+        var dialog = Sunstone.getDialog(DISK_RESIZE_DIALOG_ID);
+        dialog.setParams(
+          { element: that.element,
+            diskId: disk_id,
+            diskSize: disk_size,
+            diskCost: that.element.TEMPLATE.DISK_COST
+          });
 
+        dialog.reset();
+        dialog.show();
+        return false;
+      });
+    }
+   
     Tree.setup(context);
   }
 
@@ -570,5 +713,62 @@ define(function(require) {
       htmlStr : html,
       subTree : subTree
     };
+  }
+
+  function _onShow(context) {
+    var that = this;
+    if (OpenNebulaVM.isDiskGraphsSupported(that.element)) {
+      OpenNebulaVM.monitor({
+        data: {
+          id: that.element.ID,
+          monitor: {
+            monitor_resources : "MONITORING/DISKRDBYTES,MONITORING/DISKWRBYTES,MONITORING/DISKRDIOPS,MONITORING/DISKWRIOPS"
+          }
+        },
+        success: function(req, response) {
+          var vmGraphs = [
+            {
+              labels : Locale.tr("Disk read bytes"),
+              monitor_resources : "MONITORING/DISKRDBYTES",
+              humanize_figures : true,
+              convert_from_bytes : true,
+               derivative : true,
+              div_graph : $("#vm_st_drb_graph")
+            },
+            {
+              labels : Locale.tr("Disk write bytes"),
+              monitor_resources : "MONITORING/DISKWRBYTES",
+              humanize_figures : true,
+              convert_from_bytes : true,
+               derivative : true,
+              div_graph : $("#vm_st_dwb_graph")
+            },
+            {
+              labels : Locale.tr("Disk read IOPS"),
+              monitor_resources : "MONITORING/DISKRDIOPS",
+              //humanize_figures : true,
+              //convert_from_bytes : true,
+              y_sufix : "IOPS/s",
+              derivative : true,
+              div_graph : $("#vm_st_drio_graph")
+            },
+            {
+              labels : Locale.tr("Disk write IOPS"),
+              monitor_resources : "MONITORING/DISKWRIOPS",
+              //humanize_figures : true,
+              //convert_from_bytes : true,
+              y_sufix : "IOPS/s",
+              derivative : true,
+              div_graph : $("#vm_st_dwio_graph")
+            }
+          ];
+
+          for (var i = 0; i < vmGraphs.length; i++) {
+            Graphs.plot(response, vmGraphs[i]);
+          }
+        },
+        error: Notifier.onError
+      });
+    }
   }
 });

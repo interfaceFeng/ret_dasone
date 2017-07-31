@@ -407,12 +407,6 @@ function VerifyCharModifier(next) {
             case 'keydown':
                 // is the next element a keypress? Then we should merge the two
                 if (queue.length !== 0 && queue[0].type === 'keypress') {
-                    // Firefox sends keypress even when no char is generated.
-                    // so, if keypress keysym is the same as we'd have guessed from keydown,
-                    // the modifier didn't have any effect, and should not be escaped
-                    if (queue[0].escape && (!cur.keysym || cur.keysym.keysym !== queue[0].keysym.keysym)) {
-                        cur.escape = queue[0].escape;
-                    }
                     cur.keysym = queue[0].keysym;
                     queue = queue.splice(1);
                 }

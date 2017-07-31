@@ -29,6 +29,7 @@ define(function(require) {
   var SecurityGroupsTable = require('tabs/secgroups-tab/datatable');
   var TemplateUtils = require('utils/template-utils');
   var WizardFields = require('utils/wizard-fields');
+  var ResourceSelect = require('utils/resource-select');
 
   /*
     TEMPLATES
@@ -115,7 +116,10 @@ define(function(require) {
     $("#vnet_wizard_ar_btn", context).bind("click", function() {
       that.addARTab(number_of_ar, context);
       number_of_ar++;
-
+      var mode = $("#network_mode", context).val();
+      if(mode == "vcenter"){
+        $(".sec_groups_datatable", context).hide();
+      }
       return false;
     });
 
@@ -126,7 +130,11 @@ define(function(require) {
       $("div.mode_param [wizard_field]", context).prop('wizard_field_disabled', true);
 
       $('input#vn_mad', context).removeAttr('required');
-
+      $('input#vn_mad', context).removeAttr('value');
+      $('#vcenter_switch_name', context).removeAttr('required');
+      $('#vcenter_cluster_id', context).removeAttr('required');
+      $(".sec_groups_datatable", context).show();
+      $('#vnetCreateSecurityTab-label').show();
       switch ($(this).val()) {
       case "dummy":
         $("div.mode_param.dummy", context).show();
@@ -163,6 +171,31 @@ define(function(require) {
         $("div.mode_param.ovswitch [wizard_field]", context).prop('wizard_field_disabled', false);
 
         $('input#bridge', context).attr('required', '');
+        break;
+      case "vcenter":
+        $("div.mode_param.vcenter", context).show();
+        $(".sec_groups_datatable", context).hide();
+        $("div.mode_param.vcenter [wizard_field]", context).prop('wizard_field_disabled', false);
+        $('input#bridge', context).attr('value', $('#name', context).val());
+        $('#vcenter_switch_name', context).attr('required', '');
+        $('#vnetCreateSecurityTab-label').hide();
+        ResourceSelect.insert({
+          context: $('#vcenter_cluster_id', context),
+          resourceName: 'Host',
+          emptyValue: true,
+          nameValues: false,
+          filterKey: 'VM_MAD',
+          filterValue: 'vcenter',
+          required: true,
+          callback: function(element){
+            element.attr('wizard_field', 'VCENTER_ONE_HOST_ID');
+          }
+        });
+
+        $('input#vn_mad', context).attr('required', '');
+        $('input#vn_mad', context).attr('value', 'vcenter');
+
+        $('#div_vn_mad', context).hide();
         break;
       case "custom":
         $("div.mode_param.custom", context).show();

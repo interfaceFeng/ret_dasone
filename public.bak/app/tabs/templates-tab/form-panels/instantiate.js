@@ -31,8 +31,11 @@ define(function(require) {
   var WizardFields = require('utils/wizard-fields');
   var DisksResize = require('utils/disks-resize');
   var NicsSection = require('utils/nics-section');
+  var VMGroupSection = require('utils/vmgroup-section');
+  var VcenterVMFolder = require('utils/vcenter-vm-folder');
   var CapacityInputs = require('tabs/templates-tab/form-panels/create/wizard-tabs/general/capacity-inputs');
   var Config = require('sunstone-config');
+  var HostsTable = require('tabs/hosts-tab/datatable');
 
   /*
     CONSTANTS
@@ -86,26 +89,31 @@ define(function(require) {
   function _setup(context) {
     var that = this;
 
-    $("input.instantiate_pers", context).on("change", function(){
-      var persistent = $(this).prop('checked');
+    if(Config.isFeatureEnabled("instantiate_persistent")){
+      $("input.instantiate_pers", context).on("change", function(){
+        var persistent = $(this).prop('checked');
 
-      if(persistent){
-        $("#vm_n_times_disabled", context).show();
-        $("#vm_n_times", context).hide();
-      } else {
-        $("#vm_n_times_disabled", context).hide();
-        $("#vm_n_times", context).show();
-      }
+        if(persistent){
+          $("#vm_n_times_disabled", context).show();
+          $("#vm_n_times", context).hide();
+        } else {
+          $("#vm_n_times_disabled", context).hide();
+          $("#vm_n_times", context).show();
+        }
 
-      $.each(that.template_objects, function(index, template_json) {
-        DisksResize.insert({
-          template_json:    template_json,
-          disksContext:     $(".disksContext"  + template_json.VMTEMPLATE.ID, context),
-          force_persistent: persistent,
-          cost_callback: that.calculateCost.bind(that)
+        $.each(that.template_objects, function(index, template_json) {
+          DisksResize.insert({
+            template_json:    template_json,
+            disksContext:     $(".disksContext"  + template_json.VMTEMPLATE.ID, context),
+            force_persistent: persistent,
+            cost_callback: that.calculateCost.bind(that)
+          });
         });
       });
-    });
+    } else {
+      $("#vm_n_times_disabled", context).hide();
+      $("#vm_n_times", context).show();
+    }
   }
 
   function _calculateCost(){
@@ -164,6 +172,16 @@ define(function(require) {
 
       var networks = NicsSection.retrieve($(".nicsContext"  + template_id, context));
 
+      var vmgroup = VMGroupSection.retrieve($(".vmgroupContext"+ template_id));
+      if(vmgroup){
+        $.extend(tmp_json, vmgroup);
+      }
+
+      var sched = WizardFields.retrieveInput($("#SCHED_REQUIREMENTS"  + template_id, context));
+      if(sched){
+        tmp_json.SCHED_REQUIREMENTS = sched;
+      }
+
       var nics = [];
       var pcis = [];
 
@@ -206,16 +224,22 @@ define(function(require) {
         tmp_json.PCI = pcis;
       }
 
+      if (Config.isFeatureEnabled("vcenter_vm_folder")){
+        if(!$.isEmptyObject(original_tmpl.TEMPLATE.HYPERVISOR) &&
+          original_tmpl.TEMPLATE.HYPERVISOR === 'vcenter'){
+          $.extend(tmp_json, VcenterVMFolder.retrieveChanges($(".vcenterVMFolderContext"  + template_id)));
+        }
+      }
+
       capacityContext = $(".capacityContext"  + template_id, context);
       $.extend(tmp_json, CapacityInputs.retrieveChanges(capacityContext));
 
       extra_info['template'] = tmp_json;
+        for (var i = 0; i < n_times_int; i++) {
+          extra_info['vm_name'] = vm_name.replace(/%i/gi, i); // replace wildcard
 
-      for (var i = 0; i < n_times_int; i++) {
-        extra_info['vm_name'] = vm_name.replace(/%i/gi, i); // replace wildcard
-
-        Sunstone.runAction("Template."+action, [template_id], extra_info);
-      }
+          Sunstone.runAction("Template."+action, [template_id], extra_info);
+        }
     });
 
     return false;
@@ -242,12 +266,34 @@ define(function(require) {
         timeout: true,
         success: function (request, template_json) {
           that.template_objects.push(template_json);
+          var options = {
+            'select': true,
+            'selectOptions': {
+              'multiple_choice': true
+            }
+          }
 
+          that.hostsTable = new HostsTable('HostsTable' + template_json.VMTEMPLATE.ID, options);
           templatesContext.append(
             TemplateRowHTML(
               { element: template_json.VMTEMPLATE,
-                capacityInputsHTML: CapacityInputs.html()
+                capacityInputsHTML: CapacityInputs.html(),
+                hostsDatatable: that.hostsTable.dataTableHTML
               }) );
+
+          $(".provision_host_selector" + template_json.VMTEMPLATE.ID, context).data("hostsTable", that.hostsTable);
+          var selectOptions = {
+            'selectOptions': {
+              'select_callback': function(aData, options) {
+                generateRequirements($(".provision_host_selector" + template_json.VMTEMPLATE.ID, context).data("hostsTable"), context, template_json.VMTEMPLATE.ID);
+              },
+              'unselect_callback': function(aData, options) {
+                generateRequirements($(".provision_host_selector"+ template_json.VMTEMPLATE.ID, context).data("hostsTable"), context, template_json.VMTEMPLATE.ID);
+              }
+            }
+          }
+          that.hostsTable.initialize(selectOptions);
+          that.hostsTable.refreshResourceTableSelect();
 
           DisksResize.insert({
             template_json: template_json,
@@ -261,6 +307,13 @@ define(function(require) {
             { 'forceIPv4': true,
               'securityGroups': Config.isFeatureEnabled("secgroups")
             });
+
+          VMGroupSection.insert(template_json,
+            $(".vmgroupContext"+ template_json.VMTEMPLATE.ID, context));
+
+          vcenterVMFolderContext = $(".vcenterVMFolderContext"  + template_json.VMTEMPLATE.ID, context);
+          VcenterVMFolder.setup(vcenterVMFolderContext);
+          VcenterVMFolder.fill(vcenterVMFolderContext, template_json.VMTEMPLATE);
 
           var inputs_div = $(".template_user_inputs" + template_json.VMTEMPLATE.ID, context);
 
@@ -330,4 +383,21 @@ define(function(require) {
     Tips.setup(context);
     return false;
   }
+  function generateRequirements(hosts_table, context, id) {
+      var req_string=[];
+      //var req_ds_string=[];
+      var selected_hosts = hosts_table.retrieveResourceTableSelect();
+      //var selected_ds = this.datastoresTable.retrieveResourceTableSelect();
+
+      $.each(selected_hosts, function(index, hostId) {
+        req_string.push('ID="'+hostId+'"');
+      });
+
+      /*$.each(selected_ds, function(index, dsId) {
+        req_ds_string.push('ID="'+dsId+'"');
+      });*/
+
+      $('#SCHED_REQUIREMENTS' + id, context).val(req_string.join(" | "));
+      //$('#SCHED_DS_REQUIREMENTS', context).val(req_ds_string.join(" | "));
+  };
 });

@@ -29,6 +29,7 @@ define(function(require) {
   var OpenNebulaHost = require('opennebula/host');
   var UserInputs = require('utils/user-inputs');
   var UniqueId = require('utils/unique-id');
+  var OpenNebula = require('opennebula');
 
   /*
     TEMPLATES
@@ -190,8 +191,8 @@ define(function(require) {
       var customization = WizardFields.retrieveInput($('input.vcenter_customizations_value', context));
 
       if (customization) {
-        templateJSON["VCENTER_PUBLIC_CLOUD"] = {
-          CUSTOMIZATION_SPEC : customization
+        templateJSON["USER_TEMPLATE"] = {
+          VCENTER_CUSTOMIZATION_SPEC : customization
         };
       }
     } else {
@@ -221,10 +222,12 @@ define(function(require) {
 
       var userInputsJSON = UserInputs.retrieve(context);
 
-      $.each(userInputsJSON, function(key,value){
+      $.each(userInputsJSON, function(key, value){
         var name = key.toUpperCase();
-        contextJSON[name] = "$" + name;
+        contextJSON[key] = "$" + name;
       });
+
+      var userInputsOrder = UserInputs.retrieveOrder();
 
       var start_script = WizardFields.retrieveInput($(".START_SCRIPT", context));
       if (start_script != "") {
@@ -237,6 +240,7 @@ define(function(require) {
 
       if (!$.isEmptyObject(contextJSON)) { templateJSON['CONTEXT'] = contextJSON; };
       if (!$.isEmptyObject(userInputsJSON)) { templateJSON['USER_INPUTS'] = userInputsJSON; };
+      templateJSON['INPUTS_ORDER'] = userInputsOrder;
     }
 
     return templateJSON;
@@ -258,8 +262,8 @@ define(function(require) {
         if(this["TYPE"] == "vcenter"){
           $("input#context_type_vcenter", context).click();
 
-          if(this["CUSTOMIZATION_SPEC"]){
-            WizardFields.fillInput($('input.vcenter_customizations_value', context), this["CUSTOMIZATION_SPEC"]);
+          if(this["VCENTER_CUSTOMIZATION_SPEC"]){
+            WizardFields.fillInput($('input.vcenter_customizations_value', context), this["VCENTER_CUSTOMIZATION_SPEC"]);
           } else if(userInputsJSON || contextJSON) {
             $("input#context_type_opennebula", context).click();
           }
@@ -282,11 +286,13 @@ define(function(require) {
       }
 
       delete templateJSON['USER_INPUTS'];
+      delete templateJSON['INPUTS_ORDER'];
     }
 
     if (contextJSON) {
-      var file_ds_regexp = /\$FILE\[IMAGE_ID=([0-9]+)+/g;
-      var net_regexp = /^NETWORK$/;;
+      $("input#context_type_opennebula", context).click();
+      var file_ds_regexp = /FILE\[IMAGE=(\w+?)\W+IMAGE_UNAME=(\w+?)\]/g;
+      var net_regexp = /^NETWORK$/;
       var ssh_regexp = /^SSH_PUBLIC_KEY$/;
       var token_regexp = /^TOKEN$/;
       var report_ready_regexp = /^REPORT_READY$/;
@@ -314,14 +320,24 @@ define(function(require) {
         } else if ("FILES_DS" == key) {
           WizardFields.fillInput($('.FILES_DS', context), contextJSON["FILES_DS"]);
           var files = [];
-          while (match = file_ds_regexp.exec(value)) {
-            files.push(match[1])
-          }
-
-          var selectedResources = {
-              ids : files
+          OpenNebula.Image.list({
+            timeout: true,
+            success: function(request, obj_files){
+              while (match = file_ds_regexp.exec(value)) {
+                $.each(obj_files, function(key, value){
+                  if(value.IMAGE.NAME == match[1] && value.IMAGE.UNAME == match[2]){
+                    files.push(value.IMAGE.ID);
+                    return false;
+                  }
+                });
+              }
+              var selectedResources = {
+                ids : files
+              }
+              that.contextFilesTable.selectResourceTableSelect(selectedResources);
             }
-          that.contextFilesTable.selectResourceTableSelect(selectedResources);
+          });
+
         } else if ("START_SCRIPT_BASE64" == key) {
           $(".ENCODE_START_SCRIPT", context).prop('checked', 'checked');
           $(".START_SCRIPT", context).val(atob(value));
@@ -343,9 +359,16 @@ define(function(require) {
     var selected_files = this.contextFilesTable.retrieveResourceTableSelect();
 
     $.each(selected_files, function(index, fileId) {
-      req_string.push("$FILE[IMAGE_ID="+ fileId +"]");
+      OpenNebula.Image.show({
+        timeout: true,
+        data : {
+          id: fileId
+        },
+        success: function(request, obj_file){
+          req_string.push("$FILE[IMAGE=" + obj_file.IMAGE.NAME + ", IMAGE_UNAME=" + obj_file.IMAGE.UNAME + "]");
+          $('.FILES_DS', context).val(req_string.join(" "));
+        }
+      });
     });
-
-    $('.FILES_DS', context).val(req_string.join(" "));
   };
 });

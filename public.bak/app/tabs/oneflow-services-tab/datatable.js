@@ -62,10 +62,10 @@ define(function(require) {
     };
 
     this.columns = [
-      Locale.tr("ID") ,
-      Locale.tr("Owner") ,
-      Locale.tr("Group"),
+      Locale.tr("ID"),
       Locale.tr("Name"),
+      Locale.tr("Owner"),
+      Locale.tr("Group"),
       Locale.tr("State"),
       Locale.tr("Labels"),
       "search_data"
@@ -73,7 +73,7 @@ define(function(require) {
 
     this.selectOptions = {
       "id_index": 1,
-      "name_index": 4,
+      "name_index": 2,
       "select_resource": Locale.tr("Please select a Service from the list"),
       "you_selected": Locale.tr("You selected the following Service:"),
       "select_resource_multiple": Locale.tr("Please select one or more Services from the list"),

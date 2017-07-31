@@ -1,4 +1,7 @@
 provision_logo: images/opennebula-5.0.png
+link_logo:
+text_link_logo:
+confirm_vms: false
 enabled_tabs:
     - provision-tab
     - settings-tab
@@ -14,6 +17,12 @@ features:
     # will be set to the same value as VCPU, that will still be visible for the
     # end users
     instantiate_hide_cpu: false
+    
+    # False to not scale the CPU. Number [0, 1] to scale from VCPU
+    instantiate_cpu_factor: false
+
+    # True to show the option to make an instance persistent
+    instantiate_persistent: true
 tabs:
     provision-tab:
         panel_tabs:
@@ -75,6 +84,8 @@ tabs:
             capacity_select: true
             # True to allow NIC customization
             network_select: true
+            # True to allow vmgroup customization
+            vmgroup_select: true
             # True to allow DISK size customization
             disk_resize: true
     settings-tab:
@@ -133,3 +144,13 @@ tabs:
             #- 3         # Group
             - 4         # Name
             #- 5         # Labels
+    vmgroup-tab:
+        table_columns:
+            - 0         # Checkbox
+            - 1         # ID
+            - 2         # Name
+            - 3         # Group
+            - 4         # Owner
+            - 5         # Vms
+            #- 6         # Labels
+            #- 7        # Search data

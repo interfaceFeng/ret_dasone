@@ -46,7 +46,8 @@ define(function(require) {
     'parse': _parse,
     'generateInputElement': _generateInputElement,
     'attributeInput': _attributeInput,
-    'insertAttributeInputMB': _insertAttributeInputMB
+    'insertAttributeInputMB': _insertAttributeInputMB,
+    'retrieveOrder': _retrieveOrder
   };
 
   function _html(){
@@ -55,10 +56,12 @@ define(function(require) {
 
   function _setup(context){
     context.on("click", ".add_user_input_attr", function() {
-      $(".user_input_attrs tbody", context).append(RowTemplateHTML());
-
+      $(".user_input_attrs tbody", context).append(RowTemplateHTML({'idInput': UniqueId.id()}));
+      $('tbody label').css('cursor', 'pointer');
       $("select.user_input_type", context).change();
     });
+
+    $('tbody', context).sortable();
 
     context.on("change", "select.user_input_type", function() {
       var row = $(this).closest("tr");
@@ -72,14 +75,34 @@ define(function(require) {
     });
   }
 
+  function _retrieveOrder(){
+    if (this.order){
+      return this.order;
+    }
+    return "";
+  }
+
   function _retrieve(context){
     var userInputsJSON = {};
+    var order_inputs = "";
+
+    $('.user_input_attrs tbody tr').each(function(key, value){
+      order_inputs += $(".user_input_name", $(this)).val() + ",";
+    });
+
+    this.order = order_inputs.slice(0,-1);
 
     $(".user_input_attrs tbody tr", context).each(function() {
+      
       if ($(".user_input_name", $(this)).val()) {
         var attr = {};
         attr.name = $(".user_input_name", $(this)).val();
-        attr.mandatory = true;
+        if($('.user_input_mandatory', $(this)).prop('checked')){
+          attr.mandatory = true;
+        } else {
+          attr.mandatory = false;
+        }
+        
         attr.type = $(".user_input_type", $(this)).val();
         attr.description = $(".user_input_description", $(this)).val();
 
@@ -89,7 +112,6 @@ define(function(require) {
           case "fixed":
             attr.initial = $("."+attr.type+" input.user_input_initial", $(this)).val();
             break;
-
           case "range":
           case "range-float":
             var min = $("."+attr.type+" input.user_input_params_min", $(this)).val();
@@ -101,10 +123,14 @@ define(function(require) {
             attr.params  = $("."+attr.type+" input.user_input_params", $(this)).val();
             attr.initial = $("."+attr.type+" input.user_input_initial", $(this)).val();
             break;
+          case "boolean":
+            attr.initial = $('.user_input_initial:checked', $(this)).val();
+            break;
         }
 
         userInputsJSON[attr.name] = _marshall(attr);
       }
+      
     });
 
     return userInputsJSON;
@@ -112,51 +138,80 @@ define(function(require) {
 
   function _fill(context, templateJSON){
     var userInputsJSON = templateJSON['USER_INPUTS'];
+    if(!templateJSON['INPUTS_ORDER']){
+      var inputsOrderString = "";
+      $.each(userInputsJSON, function(key, value){
+        inputsOrderString += key + ',';
+      });
+      templateJSON['INPUTS_ORDER'] = inputsOrderString.slice(0,-1);
+    }
 
-    if (userInputsJSON) {
-      $.each(userInputsJSON, function(key, value) {
-        $(".add_user_input_attr", context).trigger("click");
+    var order = templateJSON['INPUTS_ORDER'];
+    var orderJSON = order.split(",");
 
-        var trcontext = $(".user_input_attrs tbody tr", context).last();
+    if(userInputsJSON){
+      $.each(orderJSON, function(key, value){
+        var nameOrder = value;
+        $.each(userInputsJSON, function(key, value) {
+          if(nameOrder == key){
+            $(".add_user_input_attr", context).trigger("click");
 
-        $(".user_input_name", trcontext).val(key);
+            var trcontext = $(".user_input_attrs tbody tr", context).last();
 
-        var attr = _unmarshall(value);
+            $(".user_input_name", trcontext).val(key);
 
-        if (templateJSON[key] != undefined){
-          attr.initial = templateJSON[key];
-        }
+            var attr = _unmarshall(value);
 
-        $(".user_input_type", trcontext).val(attr.type).change();
-        $(".user_input_description", trcontext).val(attr.description);
+            if (templateJSON[key] != undefined){
+              attr.initial = templateJSON[key];
+            }
+            $(".user_input_type", trcontext).val(attr.type).change();
+            $(".user_input_description", trcontext).val(attr.description);
 
-        switch(attr.type){
-          case "number":
-          case "number-float":
-          case "fixed":
-            $("."+attr.type+" input.user_input_initial", trcontext).val(attr.initial);
-            break;
-
-          case "range":
-          case "range-float":
-            var values = attr.params.split("..");  // "2..8"
-
-            if (values.length == 2){
-              $("."+attr.type+" input.user_input_params_min", trcontext).val(values[0]);
-              $("."+attr.type+" input.user_input_params_max", trcontext).val(values[1]);
+            if (attr.mandatory){
+              $('.user_input_mandatory', trcontext).attr("checked", "checked");
             } else {
-              console.error('Wrong user input parameters for "'+key+'". Expected "MIN..MAX", received "'+attr.params+'"');
+              $('.user_input_mandatory', trcontext).removeAttr("checked");
             }
 
-            $("."+attr.type+" input.user_input_initial", trcontext).val(attr.initial);
+            switch(attr.type){
+              case "number":
+              case "number-float":
+              case "fixed":
+                $("."+attr.type+" input.user_input_initial", trcontext).val(attr.initial);
+                break;
+              case "boolean":
+                if(attr.initial == "YES"){
+                  $('input#radio_yes', trcontext).attr("checked", "checked");
+                  $('input#radio_no', trcontext).removeAttr('checked');
+                }
+                else {
+                  $('input#radio_yes', trcontext).removeAttr("checked");
+                  $('input#radio_no', trcontext).attr("checked", "checked");
+                }
+                break;
+              case "range":
+              case "range-float":
+                var values = attr.params.split("..");  // "2..8"
 
-            break;
+                if (values.length == 2){
+                  $("."+attr.type+" input.user_input_params_min", trcontext).val(values[0]);
+                  $("."+attr.type+" input.user_input_params_max", trcontext).val(values[1]);
+                } else {
+                  console.error('Wrong user input parameters for "'+key+'". Expected "MIN..MAX", received "'+attr.params+'"');
+                }
 
-          case "list":
-            $("."+attr.type+" input.user_input_params", trcontext).val(attr.params);
-            $("."+attr.type+" input.user_input_initial", trcontext).val(attr.initial);
-            break;
-        }
+                $("."+attr.type+" input.user_input_initial", trcontext).val(attr.initial);
+
+                break;
+
+              case "list":
+                $("."+attr.type+" input.user_input_params", trcontext).val(attr.params);
+                $("."+attr.type+" input.user_input_initial", trcontext).val(attr.initial);
+                break;
+            }
+          }
+        });
       });
     }
   }
@@ -306,17 +361,27 @@ define(function(require) {
 
       div.append(html);
 
-      $.each(input_attrs, function(index, custom_attr) {
-        $(".instantiate_user_inputs", div).append(
-          '<div class="row">' +
-            '<div class="large-12 large-centered columns">' +
-              '<label>' +
-                TemplateUtils.htmlEncode(custom_attr.description) +
-                _attributeInput(custom_attr) +
-              '</label>' +
-            '</div>' +
-          '</div>');
-      });
+      if(opts.defaults.INPUTS_ORDER){
+        var order = opts.defaults.INPUTS_ORDER;
+        var orderJSON = order.split(",");
+
+        $.each(orderJSON, function(key, value){
+          var orderValue = value;
+          $.each(input_attrs, function(index, custom_attr) {
+            if(custom_attr.name == orderValue){
+              $(".instantiate_user_inputs", div).append(
+                '<div class="row">' +
+                  '<div class="large-12 large-centered columns">' +
+                    '<label>' +
+                      TemplateUtils.htmlEncode(custom_attr.description) +
+                      _attributeInput(custom_attr) +
+                    '</label>' +
+                  '</div>' +
+                '</div>');
+            }
+          });
+        });
+      }
     }
 
     return (network_attrs.length > 0 || input_attrs.length > 0);
@@ -343,6 +408,7 @@ define(function(require) {
     switch (attr.type) {
       case "number":
       case "number-float":
+      case "boolean":
       case "fixed":
         st += ("| |" + (attr.initial != undefined ? attr.initial : "") );
 
@@ -605,7 +671,19 @@ define(function(require) {
         }
         break;
       case "password":
-        input = '<input type="password" value="'+value+'" '+wizard_field+' '+required+'/>';
+        input = '<br><input type="password" value="'+value+'" '+wizard_field+' '+required+'/>';
+        break;
+      case "boolean":
+        if(value == "YES"){
+          input = '<br>' + Locale.tr("YES ") + '<input style="margin-right: 20px" checked type="radio" name="bool_' + attr.name + '" value="YES"' + wizard_field + ' ' + required + '/>';
+          input += Locale.tr("NO ") + '<input type="radio" name="bool_' + attr.name + '" value="NO"' + wizard_field + ' ' + required + '/>';
+        } else if(value == "NO"){
+          input = '<br>' + Locale.tr("YES ") + '<input style="margin-right: 20px" type="radio" name="bool_' + attr.name + '" value="YES"' + wizard_field + ' ' + required + '/>';
+          input += Locale.tr("NO ") + '<input checked type="radio" name="bool_' + attr.name + '" value="NO"' + wizard_field + ' ' + required + '/>'
+        } else {
+          input = '<br>' + Locale.tr("YES ") + '<input style="margin-right: 20px" type="radio" name="bool_' + attr.name + '" value="YES"' + wizard_field + ' ' + required + '/>';
+          input += Locale.tr("NO ") + '<input type="radio" name="bool_' + attr.name + '" value="NO"' + wizard_field + ' ' + required + '/>';
+        }
         break;
       case "number":
       case "number-float":

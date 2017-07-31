@@ -33,6 +33,7 @@ define(function(require) {
   var Config = require('sunstone-config');
   var WizardFields = require('utils/wizard-fields');
   var ProgressBar = require('utils/progress-bar');
+  var Humanize = require('utils/humanize');
 
   var TemplateWizardHTML = require('hbs!./create/wizard');
   var TemplateAdvancedHTML = require('hbs!./create/advanced');
@@ -128,6 +129,7 @@ define(function(require) {
     return false;
   }
 
+
   function _setup(context) {
     var that = this;
     Tips.setup(context);
@@ -143,6 +145,9 @@ define(function(require) {
         $('#path_image', context).click();
       }
     });
+    if(config["federation_mode"] == "SLAVE"){
+      $("#upload_image").attr("disabled", "disabled");
+    }
 
     $('#img_datastore', context).off('change', '.resource_list_select');
     $('#img_datastore', context).on('change', '.resource_list_select', function() {
@@ -203,8 +208,8 @@ define(function(require) {
     });
 
     // Custom Adapter Type
-    var custom_attrs = ["adapter_type",
-                        "disk_type",
+    var custom_attrs = ["vcenter_adapter_type",
+                        "vcenter_disk_type",
                         "img_dev_prefix",
                         "img_driver"];
 
@@ -252,6 +257,14 @@ define(function(require) {
       }
     });
 
+     $("#img_type", context).change(function() {
+      var value = $(this).val();
+      if(value == "CDROM")
+        $('#img_persistent', context).closest('.row').hide();
+      else
+        $('#img_persistent', context).closest('.row').show();
+    });
+
     $('#path_image', context).click();
 
     CustomTagsTable.setup(context);
@@ -263,6 +276,7 @@ define(function(require) {
         target: 'upload_chunk',
         chunkSize: 10 * 1024 * 1024,
         maxFiles: 1,
+        maxFileSize: config['system_config']['max_upload_file_size'],
         testChunks: false,
         query: {
           csrftoken: csrftoken
@@ -278,25 +292,77 @@ define(function(require) {
         fileName = file.fileName;
         file_input = fileName;
 
-        $('#file-uploader-input', context).hide()
+        $('#file-uploader-input', context).hide();
         $("#file-uploader-label", context).html(file.fileName);
+        $("#file-uploader-label", context).show();
+        $('#close_image', context).show();
       });
 
+      $('#close_image', context).on('click', function(){
+          $("#file-uploader-label", context).hide();
+          $('#close_image', context).hide();
+          $('#file-uploader-input', context).show();
+          fileName= '';
+          that.uploader.files.length = 0;
+      });
+      var last_time = 0;
+      var old_size = 0;
+
       that.uploader.on('uploadStart', function() {
-        $('#upload_progress_bars').append(
-          '<div id="' + fileName + 'progressBar" class="row" style="margin-bottom:10px">\
-            <div id="' + fileName + '-info" class="medium-2 columns">\
-              ' + Locale.tr("Uploading...") + '\
-            </div>\
-            <div class="medium-10 columns">\
-              <div class="progressbar">'+
-                ProgressBar.html(0, 1, fileName) + '\
+        last_time = new Date().getTime();
+        old_size = 0;
+        var myThis = this;
+          if(!(myThis.progress() > 0)){
+          var element = $('#upload_progress_bars').append(
+            '<div id="' + fileName + 'progressBar" class="row" style="margin-bottom:10px">\
+              <div id="' + fileName + '-info" class="medium-2 columns">\
+                ' + Locale.tr("Uploading...") + '\
               </div>\
-            </div>\
-          </div>');
+              <div class="medium-10 columns">\
+                <div class="progressbar">'+
+                  ProgressBar.html(0, 1, fileName) + '\
+                </div>\
+                <div>\
+                  <button id="close_upload_image" class="fa fa-times-circle fa fa-lg close_upload_image">   </button>\
+                  <button id="pause_upload_image" class="fa fa-pause fa fa-lg pause_upload_image">   </button>\
+                  <button id="play_upload_image" class="fa fa-play fa fa-lg play_upload_image" hidden="true">   </button>\
+                </div>\
+              </div>\
+              <div class="medium-2 columns">\
+                <div id="speed">speed: </div>\
+                <div id="percent_progress">Completed: </div>\
+                </div>\
+            </div>');
+          }
+          $(".close_upload_image").on('click', function(){
+            myThis.cancel();
+            show=0;
+            if(element)
+              element.remove();
+          });
+          $(".pause_upload_image").on('click', function(){
+            myThis.pause();
+            $(".pause_upload_image").hide();
+            $(".play_upload_image").show();
+          });
+          $(".play_upload_image").on('click', function(){
+            myThis.upload();
+            $(".play_upload_image").hide();
+            $(".pause_upload_image").show();
+          });
       });
 
       that.uploader.on('progress', function() {
+        var time = new Date().getTime();
+        var size = this.getSize() * this.progress();
+        if(time - last_time > 2000){
+          size = size - old_size;
+          var speed = size / ((time - last_time));
+          document.getElementById( 'speed' ).textContent = 'speed: ' + Humanize.size(speed) +'s';
+          last_time = time;
+          old_size = size;
+        }
+        document.getElementById( 'percent_progress' ).textContent = 'Completed: ' + (this.progress().toFixed(3)*100).toFixed(1) +'%';
         $('div.progressbar', $('div[id="' + fileName + 'progressBar"]')).html(
                               ProgressBar.html(this.progress(), 1, fileName) );
       });
@@ -305,7 +371,7 @@ define(function(require) {
     return false;
   }
 
-  function _submitWizard(context) {
+ function _submitWizard(context) {
     var that = this;
     var upload = false;
 
@@ -351,12 +417,12 @@ define(function(require) {
     if (target)
         img_json["TARGET"] = target;
 
-    var adapter_type = WizardFields.retrieveInput($('#adapter_type', context));
-    if (adapter_type) {
-      if (adapter_type == "custom") {
-        adapter_type = WizardFields.retrieveInput($('#custom_adapter_type', context));
+    var vcenter_adapter_type = WizardFields.retrieveInput($('#vcenter_adapter_type', context));
+    if (vcenter_adapter_type) {
+      if (vcenter_adapter_type == "custom") {
+        vcenter_adapter_type = WizardFields.retrieveInput($('#custom_vcenter_adapter_type', context));
       }
-      img_json["ADAPTER_TYPE"] = adapter_type;
+      img_json["VCENTER_ADAPTER_TYPE"] = vcenter_adapter_type;
     }
 
     switch ($('#src_path_select input:checked', context).val()){
@@ -368,12 +434,12 @@ define(function(require) {
       size = WizardFields.retrieveInput($('#img_size', context));
       if (size) img_json["SIZE"] = size;
 
-      var disk_type = WizardFields.retrieveInput($('#disk_type', context));
-      if (disk_type) {
-        if (disk_type == "custom"){
-          disk_type = WizardFields.retrieveInput($('#custom_disk_type', context));
+      var vcenter_disk_type = WizardFields.retrieveInput($('#vcenter_disk_type', context));
+      if (vcenter_disk_type) {
+        if (vcenter_disk_type == "custom"){
+          vcenter_disk_type = WizardFields.retrieveInput($('#custom_disk_type', context));
         }
-        img_json["DISK_TYPE"] = disk_type;
+        img_json["VCENTER_DISK_TYPE"] = vcenter_disk_type;
       }
 
       break;

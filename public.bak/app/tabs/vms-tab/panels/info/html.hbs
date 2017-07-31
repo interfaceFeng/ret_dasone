@@ -24,6 +24,9 @@
       </thead>
       <tbody>
         <tr>
+          <td class="key_td" colspan="2"><img src="{{element.USER_TEMPLATE.LOGO}}"></td>
+        </tr>
+        <tr>
           <td class="key_td">{{tr "ID"}}</td>
           <td class="value_td" colspan="2">{{element.ID}}</td>
         </tr>
@@ -43,6 +46,13 @@
           <td class="value_td">{{{hostnameHTML}}}</td>
           <td></td>
         </tr>
+
+        <tr>
+          <td class="key_td">{{tr "IP"}}</td>
+          <td class="value_td">{{{IP}}}</td>
+          <td></td>
+        </tr>
+
         <tr>
           <td class="key_td">{{tr "Start time"}}</td>
           <td class="value_td">{{prettyStartTime}}</td>
@@ -70,6 +80,9 @@
   </table>
 </div>
 <div class="large-6 columns">{{{permissionsTableHTML}}}</div>
+</div>
+<div class="row vcenter">
+<div class="large-9 columns">{{{templateTableVcenterHTML}}}</div>
 </div>
 <div class="row">
 <div class="large-9 columns">{{{templateTableHTML}}}</div>

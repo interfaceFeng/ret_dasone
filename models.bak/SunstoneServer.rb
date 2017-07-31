@@ -24,8 +24,6 @@ require 'OpenNebulaJSON/JSONUtils'
 #include JSONUtils
 
 class SunstoneServer < CloudServer
-    # FLAG that will filter the elements retrieved from the Pools
-    POOL_FILTER = Pool::INFO_ALL
 
     # Secs to sleep between checks to see if image upload to repo is finished
     IMAGE_POLL_SLEEP_TIME = 5
@@ -38,14 +36,10 @@ class SunstoneServer < CloudServer
     ############################################################################
     #
     ############################################################################
-    def get_pool(kind,gid, client=nil)
+    def get_pool(kind,user_flag, client=nil)
         client = @client if !client
 
-        if gid == "0"
-            user_flag = Pool::INFO_ALL
-        else
-            user_flag = POOL_FILTER
-        end
+        user_flag = Integer(user_flag)
 
         pool = case kind
             when "group"            then GroupPoolJSON.new(client)
@@ -53,6 +47,7 @@ class SunstoneServer < CloudServer
             when "host"             then HostPoolJSON.new(client)
             when "image"            then ImagePoolJSON.new(client, user_flag)
             when "vmtemplate"       then TemplatePoolJSON.new(client, user_flag)
+            when "vm_group"         then VMGroupPoolJSON.new(client, user_flag)
             when "vm"               then VirtualMachinePoolJSON.new(client, user_flag)
             when "vnet"             then VirtualNetworkPoolJSON.new(client, user_flag)
             when "user"             then UserPoolJSON.new(client)
@@ -113,6 +108,7 @@ class SunstoneServer < CloudServer
             when "host"             then HostJSON.new(Host.build_xml, @client)
             when "image"            then ImageJSON.new(Image.build_xml, @client)
             when "vmtemplate"       then TemplateJSON.new(Template.build_xml, @client)
+            when "vm_group"         then VMGroupJSON.new(VMGroup.build_xml,@client)
             when "vm"               then VirtualMachineJSON.new(VirtualMachine.build_xml,@client)
             when "vnet"             then VirtualNetworkJSON.new(VirtualNetwork.build_xml, @client)
             when "user"             then UserJSON.new(User.build_xml, @client)
@@ -486,6 +482,7 @@ class SunstoneServer < CloudServer
             when "host"             then HostJSON.new_with_id(id, @client)
             when "image"            then ImageJSON.new_with_id(id, @client)
             when "vmtemplate"       then TemplateJSON.new_with_id(id, @client)
+            when "vm_group"          then VMGroupJSON.new_with_id(id, @client)
             when "vm"               then VirtualMachineJSON.new_with_id(id, @client)
             when "vnet"             then VirtualNetworkJSON.new_with_id(id, @client)
             when "user"             then UserJSON.new_with_id(id, @client)

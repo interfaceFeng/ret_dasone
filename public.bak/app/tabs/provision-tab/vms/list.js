@@ -176,6 +176,11 @@ define(function(require) {
 
         var state = get_provision_vm_state(data);
 
+        var monitoring = "";
+        if(data.MONITORING.GUEST_IP){
+          monitoring = '<li class="provision-bullet-item"><span class=""><i class="fa fa-fw fa-lg fa-server"/>' + data.MONITORING.GUEST_IP + '</span></li>';
+        }
+
         $(".provision_vms_ul", context).append('<div class="column">'+
             '<ul class="provision-pricing-table menu vertical" opennebula_id="'+data.ID+'" datatable_index="'+iDisplayIndexFull+'">'+
               '<li class="provision-title">'+
@@ -198,7 +203,7 @@ define(function(require) {
                 '<span class="">'+
                   get_provision_ips(data) +
                 '</span>'+
-              '</li>'+
+              '</li>'+ monitoring +
               '<li class="provision-bullet-item-last" >'+
                 '<span class="">'+
                   '<i class="fa fa-fw fa-lg fa-user"/> '+
@@ -405,6 +410,16 @@ define(function(require) {
                 '</span>'+
               '</li>');
 
+          var vcenter_info = "";
+          if(data.MONITORING.VCENTER_GUEST_STATE){
+            vcenter_info = "<thead><tr><th>" + Locale.tr("vCenter information") + "</th></tr></thead><tbody>" +
+            "<tr><td>" + Locale.tr("GUEST STATE") + "</td><td>" + data.MONITORING.VCENTER_GUEST_STATE + "</td>" +
+             "<td>" + Locale.tr("VMWARETOOLS RUNNING STATUS") + "</td><td>" +
+             data.MONITORING.VCENTER_VMWARETOOLS_RUNNING_STATUS + "</td></tr>" +
+             "<tr><td>" + Locale.tr("VMWARETOOLS VERSION") + "</td><td>" + data.MONITORING.VCENTER_VMWARETOOLS_VERSION + "</td><td>" + Locale.tr("VMWARETOOLS VERSION STATUS") + "</td><td>" + data.MONITORING.VCENTER_VMWARETOOLS_VERSION_STATUS + "</td></tr></tbody>";
+          }
+
+          $(".provision-sunstone-vcenter-list", context).html(vcenter_info);
           $(".provision_confirm_action:first", context).html("");
 
           $(".provision_info_vm", context).css('visibility', 'visible');
@@ -493,6 +508,7 @@ define(function(require) {
 
         var vm_id = context.attr("vm_id");
         var template_name = $('.provision_snapshot_name', context).val();
+        var template_description = $('.provision_snapshot_description', context).val();
         var persistent =
           ($('input[name=provision_snapshot_radio]:checked').val() == "persistent");
 
@@ -501,6 +517,7 @@ define(function(require) {
             id: vm_id,
             extra_param: {
               name : template_name,
+              description: template_description,
               persistent : persistent
             }
           },
@@ -839,6 +856,9 @@ define(function(require) {
           case OpenNebulaVM.LCM_STATES.PROLOG_MIGRATE_POWEROFF:
           case OpenNebulaVM.LCM_STATES.PROLOG_MIGRATE_SUSPEND:
           case OpenNebulaVM.LCM_STATES.PROLOG_MIGRATE_UNKNOWN:
+          case OpenNebulaVM.LCM_STATES.DISK_RESIZE:
+          case OpenNebulaVM.LCM_STATES.DISK_RESIZE_POWEROFF:
+          case OpenNebulaVM.LCM_STATES.DISK_RESIZE_UNDEPLOYED:
             state_color = 'running';
             state_str = Locale.tr("RUNNING");
             break;

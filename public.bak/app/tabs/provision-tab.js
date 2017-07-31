@@ -34,6 +34,7 @@ define(function(require) {
   var RangeSlider = require('utils/range-slider');
   var DisksResize = require('utils/disks-resize');
   var NicsSection = require('utils/nics-section');
+  var VMGroupSection = require('utils/vmgroup-section');
   var TemplateUtils = require('utils/template-utils');
   var WizardFields = require('utils/wizard-fields');
   var UserInputs = require('utils/user-inputs');
@@ -90,6 +91,7 @@ define(function(require) {
     var context = $("#provision_create_vm");
     $("#vm_name", context).val('');
     $(".provision_selected_networks").html("");
+    $(".provision_vmgroup_selector").html("");
     $(".provision-pricing-table", context).removeClass("selected");
     $(".alert-box-error", context).hide();
     $(".total_cost_div", context).hide();
@@ -299,6 +301,10 @@ define(function(require) {
 
     if (Config.provision.dashboard.isEnabled("vms")) {
       $("#provision_dashboard").append(TemplateDashboardVms());
+      
+      if(!Config.isProvisionTabEnabled("provision-tab", "templates")){
+        $('.provision_create_vm_button').hide();
+      }
 
       var start_time =  Math.floor(new Date().getTime() / 1000);
       // ms to s
@@ -329,6 +335,7 @@ define(function(require) {
         timeout: true,
         success: function (request, item_list){
           var total = 0;
+          var totalGroup = 0;
           var running = 0;
           var off = 0;
           var error = 0;
@@ -358,10 +365,14 @@ define(function(require) {
                   break;
               }
             }
+            else{
+              totalGroup += 1;
+            }
           })
 
           var context = $("#provision_vms_dashboard");
-          $("#provision_dashboard_total", context).html(total);
+          $("#provision_dashboard_owner", context).html(total);
+          $("#provision_dashboard_group", context).html(totalGroup);
           $("#provision_dashboard_running", context).html(running);
           $("#provision_dashboard_off", context).html(off);
           $("#provision_dashboard_error", context).html(error);
@@ -557,6 +568,10 @@ define(function(require) {
     $("#provision_create_vm .provision_disk_selector").html("");
     $("#provision_create_vm .provision_disk_selector").removeData("template_json");
     $("#provision_create_vm .provision_network_selector").html("");
+    $("#provision_create_vm .provision_vmgroup_selector").html("");
+    $("#provision_create_vm .provision_add_vmgroup").show();
+    $("#provision_create_vm .provision_vmgroup").hide();
+
     $("#provision_create_vm .provision_custom_attributes_selector").html("")
 
     $("#provision_create_vm li:not(.is-active) a[href='#provision_dd_template']").trigger("click")
@@ -576,8 +591,11 @@ define(function(require) {
     $("#provision_customize_flow_template", context).hide();
     $("#provision_customize_flow_template", context).html("");
 
-    $(".provision_network_selector", context).html("")
-    $(".provision_custom_attributes_selector", context).html("")
+    $(".provision_network_selector", context).html("");
+    $(".provision_vmgroup_selector", context).html("");
+    $(".provision_add_vmgroup", context).show();
+    $(".provision_vmgroup", context).hide();
+    $(".provision_custom_attributes_selector", context).html("");
 
     $(".provision_accordion_flow_template .selected_template", context).hide();
     $(".provision_accordion_flow_template .select_template", context).show();
@@ -927,6 +945,7 @@ define(function(require) {
 
             $(".provision_accordion_template a").first().trigger("click");
 
+            $("#provision_create_vm .provision_vmgroup").show();
             OpenNebula.Template.show({
               data : {
                 id: template_id,
@@ -942,10 +961,14 @@ define(function(require) {
                 disksContext.data("template_json", template_json);
 
                 if (Config.provision.create_vm.isEnabled("disk_resize")) {
+                  var pers = $("input.instantiate_pers", create_vm_context).prop("checked");
+                  if(pers == undefined){
+                    pers = false;
+                  }
                   DisksResize.insert({
                     template_json: template_json,
                     disksContext: disksContext,
-                    force_persistent: $("input.instantiate_pers", create_vm_context).prop("checked"),
+                    force_persistent: pers,
                     cost_callback: _calculateCost
                   });
                 } else {
@@ -957,6 +980,12 @@ define(function(require) {
                     {'securityGroups': Config.isFeatureEnabled("secgroups")});
                 } else {
                   $(".provision_network_selector", create_vm_context).html("");
+                }
+
+                if (Config.provision.create_vm.isEnabled("vmgroup_select")) {
+                  VMGroupSection.insert(template_json, $(".vmgroupContext", create_vm_context));
+                } else {
+                  $(".provision_vmgroup_selector", create_vm_context).html("");
                 }
 
                 if (template_json.VMTEMPLATE.TEMPLATE.USER_INPUTS) {
@@ -1007,6 +1036,12 @@ define(function(require) {
             'vm_name' : vm_name,
             'template': {
             }
+          }
+
+          var vmgroup = VMGroupSection.retrieve($(".vmgroupContext"+ template_id));
+
+          if(vmgroup){
+            $.extend(extra_info.template, vmgroup);
           }
 
           if (nics.length > 0) {
@@ -1163,11 +1198,10 @@ define(function(require) {
 
             if (body.custom_attrs) {
               UserInputs.serviceTemplateInsert(
-                $(".provision_network_selector", context),
-                data);
+                $(".provision_network_selector", context), data);
             } else {
-              $(".provision_network_selector", context).html("")
-              $(".provision_custom_attributes_selector", context).html("")
+              $(".provision_network_selector", context).html("");
+              $(".provision_custom_attributes_selector", context).html("");
             }
 
             $.each(body.roles, function(index, role){

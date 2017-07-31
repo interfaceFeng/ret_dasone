@@ -63,10 +63,10 @@ define(function(require) {
     }
 
     this.columns = [
-      Locale.tr("ID") ,
-      Locale.tr("Owner") ,
-      Locale.tr("Group"),
+      Locale.tr("ID"),
       Locale.tr("Name"),
+      Locale.tr("Owner"),
+      Locale.tr("Group"),
       Locale.tr("Registration time"),
       Locale.tr("Labels"),
       "search_data"
@@ -74,7 +74,7 @@ define(function(require) {
 
     this.selectOptions = {
       "id_index": 1,
-      "name_index": 4,
+      "name_index": 2,
       "select_resource": Locale.tr("Please select a Template from the list"),
       "you_selected": Locale.tr("You selected the following Template:"),
       "select_resource_multiple": Locale.tr("Please select one or more Templates from the list"),
@@ -115,9 +115,9 @@ define(function(require) {
                              element.ID + '" name="selected_items" value="' +
                              element.ID + '"/>',
         element.ID,
+        element.NAME,
         element.UNAME,
         element.GNAME,
-        element.NAME,
         Humanize.prettyTime(element.REGTIME),
         (LabelsUtils.labelsStr(element[TEMPLATE_ATTR])||''),
         btoa(unescape(encodeURIComponent(JSON.stringify(search))))

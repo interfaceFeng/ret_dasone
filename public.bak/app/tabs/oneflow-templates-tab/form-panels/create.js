@@ -18,13 +18,14 @@ define(function(require) {
   /*
     DEPENDENCIES
    */
-
+  var Notifier = require('utils/notifier');
 //  require('foundation.tab');
   var BaseFormPanel = require('utils/form-panels/form-panel');
   var Sunstone = require('sunstone');
   var Locale = require('utils/locale');
   var Tips = require('utils/tips');
   var RoleTab = require('tabs/oneflow-templates-tab/utils/role-tab');
+  var TemplateUtils = require('utils/template-utils');
 
   /*
     TEMPLATES
@@ -239,13 +240,12 @@ define(function(require) {
   }
 
   function _submitAdvanced(context) {
-    var json_template = $('textarea#template', context).val();
-
+    var templateStr = $('textarea#template', context).val();
     if (this.action == "create") {
-      Sunstone.runAction("ServiceTemplate.create", JSON.parse(json_template) );
+      Sunstone.runAction("ServiceTemplate.create", JSON.parse(templateStr) );
       return false;
     } else if (this.action == "update") {
-      Sunstone.runAction("ServiceTemplate.update", this.resourceId, json_template);
+      Sunstone.runAction("ServiceTemplate.update", this.resourceId, templateStr);
       return false;
     }
   }
@@ -399,7 +399,6 @@ define(function(require) {
         $(".networks_role", role_section).show();
       }
 
-      $(".vm_template_contents", role_section).val("");
 
       $.each(selected_networks, function(){
         $(".service_network_checkbox[value='"+this+"']", role_section).attr('checked', true).change();

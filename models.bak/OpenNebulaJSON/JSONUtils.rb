@@ -70,41 +70,74 @@ module OpenNebulaJSON
                  ind_tab=' '
              end
 
-             str=attributes.collect do |key, value|
-                 if value
-                     str_line=""
-                     if value.class==Array && !value.empty?
-                         value.each do |value2|
-                             str_line << key.to_s.upcase << "=[" << ind_enter
-                             if value2 && value2.class==Hash
-                                 str_line << value2.collect do |key3, value3|
-                                     str = ind_tab + key3.to_s.upcase + "="
-                                     str += "\"#{value3.to_s}\"" if value3
-                                     str
-                                 end.compact.join(",\n")
-                             end
-                             str_line << "\n]\n"
-                         end
+             str = attributes.collect do |key, value|
+                 next if value.nil? || value.empty?
+                 
+                 str_line = ""
 
-                     elsif value.class==Hash && !value.empty?
-                         str_line << key.to_s.upcase << "=[" << ind_enter
+                 case value
+                 when Array
+                     value.each do |i|
+                        next if i.nil? || i.empty?
 
-                         str_line << value.collect do |key3, value3|
-                             str = ind_tab + key3.to_s.upcase + "="
-                             str += "\"#{value3.to_s}\"" if value3
-                             str
-                         end.compact.join(",\n")
-
-                         str_line << "\n]\n"
-
-                     else
-                         str_line<<key.to_s.upcase << "=" << "\"#{value.to_s}\""
+                        case i
+                        when Hash
+                            str_line << key.to_s.upcase << "=[" << ind_enter
+                            str_line << i.collect do |k, j|
+                                str = ind_tab + k.to_s.upcase + "="
+                                str += "\"#{j.to_s}\"" if j
+                                str
+                            end.compact.join(",\n")
+                            str_line << "\n]\n"
+                        else
+                            str_line << key.to_s.upcase << "=\"#{i.to_s}\"\n"
+                        end
                      end
-                     str_line
-                 end
+                when Hash
+                    str_line << key.to_s.upcase << "=[" << ind_enter
+
+                    str_line << value.collect do |key3, value3|
+                        str = ind_tab + key3.to_s.upcase + "="
+                        str += "\"#{value3.to_s}\"" if value3
+                        str
+                    end.compact.join(",\n")
+
+                    str_line << "\n]\n"
+
+                else
+                    str_line<<key.to_s.upcase << "=" << "\"#{value.to_s}\""
+                end
+
+                str_line
              end.compact.join("\n")
 
              str
          end
+
+         def hash_to_str(template_hash, delete_values)
+            for del in delete_values
+                template_hash.delete(del)
+            end
+
+            if !template_hash.empty?
+                template_str = ""
+                template_hash.collect do |key,value|
+                    if value.kind_of?(Array)
+                        template_str << key.to_s.upcase << " = \["
+                        for obj in value
+                            if obj.kind_of?(Hash)
+                                obj.collect do |key,value|
+                                    template_str << key.to_s.upcase << " = \""<< value.to_s << "\"\n"
+                                end
+                            end
+                        end
+                        template_str << "\]\n"
+                    else
+                        template_str << key.to_s.upcase << " = \""<< value.to_s << "\"\n"
+                    end
+                end
+            end
+            return template_str
+        end
      end
 end
